@@ -4,17 +4,17 @@
 [![Node.js 16+](https://img.shields.io/badge/node-16+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Node.js HTTP client that automatically bypasses Cloudflare challenges using the [CloudFlyer](https://cloudflyer.zetx.site) API. Uses LinkSocks tunnel technology for secure challenge solving.
+Node.js HTTP client that automatically bypasses Cloudflare challenges using the [CloudFlyer](https://cloudflyer.zetx.site) API.
 
 ## Features
 
 - **Axios-like API** - Familiar HTTP client interface (get, post, put, delete, etc.)
 - **Automatic challenge detection** - Detects Cloudflare protection and solves transparently
-- **LinkSocks tunnel** - Secure WebSocket-based tunnel for challenge solving
+- **Multiple solving modes** - Auto-detect, always pre-solve, or disable
 - **Turnstile support** - Solve Cloudflare Turnstile CAPTCHA and get tokens
-- **CLI tool** - Command-line interface for quick operations
 - **TypeScript support** - Full type definitions included
-- **Upstream proxy support** - Route traffic through your own proxy
+- **Proxy support** - HTTP/HTTPS proxies for both requests and API calls
+- **Command-line interface** - Quick operations without writing code
 
 ## Installation
 
@@ -24,130 +24,253 @@ npm install cfsolver
 
 ## Quick Start
 
+### Node.js API
+
+Works similar to axios, but automatically handles Cloudflare challenges:
+
 ```typescript
 import { CloudflareSolver } from 'cfsolver';
 
 const solver = new CloudflareSolver('your-api-key');
 
 try {
-  // Make a request with automatic bypass
   const response = await solver.get('https://protected-site.com');
   console.log(response.data);
-} finally {
-  solver.close(); // Clean up LinkSocks connection
-}
-```
-
-## API Reference
-
-### CloudflareSolver
-
-```typescript
-const solver = new CloudflareSolver(apiKey: string, options?: CloudflareSolverOptions);
-```
-
-#### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `apiBase` | `string` | `https://solver.zetx.site` | CloudFlyer service URL |
-| `solve` | `boolean` | `true` | Enable automatic challenge solving |
-| `onChallenge` | `boolean` | `true` | Solve only when challenge detected (false = pre-solve) |
-| `proxy` | `string \| AxiosProxyConfig` | - | Upstream proxy for LinkSocks tunnel |
-| `apiProxy` | `string \| AxiosProxyConfig` | - | Proxy for CloudFlyer API calls |
-| `usePolling` | `boolean` | `false` | Use interval polling instead of long-polling |
-| `timeout` | `number` | `30000` | Request timeout in milliseconds |
-| `verbose` | `boolean` | `false` | Enable verbose logging |
-
-### HTTP Methods
-
-```typescript
-// GET request
-const response = await solver.get(url, config?);
-
-// POST request
-const response = await solver.post(url, data?, config?);
-
-// PUT request
-const response = await solver.put(url, data?, config?);
-
-// DELETE request
-const response = await solver.delete(url, config?);
-
-// PATCH request
-const response = await solver.patch(url, data?, config?);
-
-// HEAD request
-const response = await solver.head(url, config?);
-
-// OPTIONS request
-const response = await solver.options(url, config?);
-
-// Generic request
-const response = await solver.request(config);
-```
-
-### Direct Challenge Solving
-
-```typescript
-// Solve Cloudflare challenge directly (returns cookies and user agent)
-const result = await solver.solveCloudflare('https://protected-site.com');
-console.log(result.cookies);   // { cf_clearance: '...', ... }
-console.log(result.userAgent); // Browser user agent string
-```
-
-### Turnstile Support
-
-```typescript
-// Solve a Turnstile challenge
-const token = await solver.solveTurnstile(
-  'https://example.com/page-with-turnstile',
-  '0x4AAAAAAA...' // Turnstile sitekey
-);
-
-// Use the token in your form submission
-await solver.post('https://example.com/submit', {
-  'cf-turnstile-response': token,
-});
-```
-
-### Resource Cleanup
-
-Always call `close()` when done to properly close the LinkSocks connection:
-
-```typescript
-const solver = new CloudflareSolver('your-api-key');
-try {
-  // ... your operations
 } finally {
   solver.close();
 }
 ```
 
-## CLI Usage
-
-The package includes a command-line tool:
+### Command Line
 
 ```bash
 # Set API key
-export CLOUDFLYER_API_KEY=your_api_key
-# Or on Windows:
-set CLOUDFLYER_API_KEY=your_api_key
+export CLOUDFLYER_API_KEY="your-api-key"
+
+# Make a request with automatic bypass
+npx cfsolver request https://protected-site.com
 
 # Solve Cloudflare challenge
 npx cfsolver solve cloudflare https://protected-site.com
+```
 
-# Solve Turnstile challenge
-npx cfsolver solve turnstile https://example.com 0x4AAAAAAA...
+---
 
-# Make HTTP request with automatic bypass
-npx cfsolver request https://protected-site.com
+## Table of Contents
 
-# Check account balance
-npx cfsolver balance
+- [Node.js API](#nodejs-api)
+  - [CloudflareSolver](#cloudflaresolver)
+  - [Solving Modes](#solving-modes)
+  - [Turnstile Support](#turnstile-support)
+  - [Proxy Configuration](#proxy-configuration)
+- [Command Line Interface](#command-line-interface)
+  - [solve cloudflare](#solve-cloudflare)
+  - [solve turnstile](#solve-turnstile)
+  - [request](#request)
+  - [balance](#balance)
+- [Configuration](#configuration)
+  - [Parameters](#parameters)
+  - [Environment Variables](#environment-variables)
+- [Exceptions](#exceptions)
 
-# Show help
-npx cfsolver help
+---
+
+## Node.js API
+
+### CloudflareSolver
+
+The main client for bypassing Cloudflare challenges.
+
+```typescript
+import { CloudflareSolver } from 'cfsolver';
+
+const solver = new CloudflareSolver('your-api-key');
+
+try {
+  const response = await solver.get('https://protected-site.com');
+  console.log(response.status);
+  console.log(response.data);
+} finally {
+  solver.close();
+}
+```
+
+#### Supported HTTP Methods
+
+```typescript
+solver.get(url, config?)
+solver.post(url, data?, config?)
+solver.put(url, data?, config?)
+solver.delete(url, config?)
+solver.head(url, config?)
+solver.options(url, config?)
+solver.patch(url, data?, config?)
+solver.request(config)
+```
+
+All methods accept the same config options as axios:
+
+```typescript
+const response = await solver.post(
+  'https://api.example.com/data',
+  { key: 'value' },
+  {
+    headers: { 'Authorization': 'Bearer token' },
+    timeout: 30000,
+  }
+);
+```
+
+### Solving Modes
+
+CFSolver supports three solving modes to balance speed and reliability:
+
+#### Mode 1: Auto-detect (Default, Recommended)
+
+Solves only when a Cloudflare challenge is detected. Best for most use cases.
+
+```typescript
+const solver = new CloudflareSolver('your-api-key');
+// or explicitly:
+const solver = new CloudflareSolver('your-api-key', { solve: true, onChallenge: true });
+```
+
+#### Mode 2: Always Pre-solve
+
+Always solves before each request. Slower but most reliable for heavily protected sites.
+
+```typescript
+const solver = new CloudflareSolver('your-api-key', { solve: true, onChallenge: false });
+```
+
+#### Mode 3: Disabled
+
+Direct requests only, no challenge solving. Useful for testing or unprotected endpoints.
+
+```typescript
+const solver = new CloudflareSolver('your-api-key', { solve: false });
+```
+
+### Turnstile Support
+
+Solve Cloudflare Turnstile CAPTCHA and get the token for form submission:
+
+```typescript
+import { CloudflareSolver } from 'cfsolver';
+
+const solver = new CloudflareSolver('your-api-key');
+
+try {
+  // Get the Turnstile token
+  const token = await solver.solveTurnstile(
+    'https://example.com/login',
+    '0x4AAAAAAA...'  // sitekey from cf-turnstile element
+  );
+
+  // Use the token in your form submission
+  const response = await solver.post('https://example.com/login', {
+    username: 'user',
+    password: 'pass',
+    'cf-turnstile-response': token,
+  });
+} finally {
+  solver.close();
+}
+```
+
+#### Finding the Sitekey
+
+The sitekey is found in the page's HTML within the `cf-turnstile` element:
+
+```html
+<div class="cf-turnstile" data-sitekey="0x4AAAAAAA..."></div>
+```
+
+### Proxy Configuration
+
+#### Single Proxy for All Requests
+
+```typescript
+const solver = new CloudflareSolver('your-api-key', {
+  proxy: 'http://proxy.example.com:8080',
+});
+```
+
+#### Separate Proxies for HTTP and API
+
+Use different proxies for your HTTP requests and CloudFlyer API calls:
+
+```typescript
+const solver = new CloudflareSolver('your-api-key', {
+  proxy: 'http://fast-proxy:8080',      // For your HTTP requests
+  apiProxy: 'http://stable-proxy:8081', // For CloudFlyer API calls
+});
+```
+
+#### Supported Proxy Formats
+
+```typescript
+// HTTP proxy
+proxy: 'http://host:port'
+proxy: 'http://user:pass@host:port'
+
+// HTTPS proxy
+proxy: 'https://host:port'
+```
+
+---
+
+## Command Line Interface
+
+### solve cloudflare
+
+Solve a Cloudflare challenge and get cookies:
+
+```bash
+cfsolver solve cloudflare https://protected-site.com
+
+# With proxy
+cfsolver solve cloudflare https://protected-site.com -X http://proxy:8080
+
+# Output as JSON
+cfsolver solve cloudflare https://protected-site.com --json
+```
+
+### solve turnstile
+
+Solve a Turnstile challenge and get the token:
+
+```bash
+cfsolver solve turnstile https://example.com 0x4AAAAAAA...
+
+# Output as JSON
+cfsolver solve turnstile https://example.com 0x4AAAAAAA... --json
+```
+
+### request
+
+Make an HTTP request with automatic challenge bypass:
+
+```bash
+# GET request
+cfsolver request https://protected-site.com
+
+# POST request with data
+cfsolver request -m POST -d '{"key":"value"}' https://api.example.com
+
+# With custom headers
+cfsolver request -H "Authorization: Bearer token" https://api.example.com
+
+# Save response to file
+cfsolver request -o output.html https://protected-site.com
+```
+
+### balance
+
+Check your CloudFlyer account balance:
+
+```bash
+cfsolver balance
 ```
 
 ### CLI Options
@@ -159,7 +282,7 @@ Global Options:
   -v, --verbose           Enable verbose output
 
 Solve Options:
-  -X, --proxy <url>       Upstream proxy (scheme://host:port)
+  -X, --proxy <url>       Proxy for requests (scheme://host:port)
   --api-proxy <url>       Proxy for API calls
   -T, --timeout <sec>     Timeout in seconds (default: 120)
   --json                  Output result as JSON
@@ -171,100 +294,45 @@ Request Options:
   -o, --output <file>     Save response to file
 ```
 
-## Examples
+---
 
-### Basic Usage
+## Configuration
 
-```typescript
-import { CloudflareSolver } from 'cfsolver';
+### Parameters
 
-async function main() {
-  const solver = new CloudflareSolver(process.env.CLOUDFLYER_API_KEY!);
-  
-  try {
-    const response = await solver.get('https://protected-site.com');
-    console.log('Status:', response.status);
-    console.log('Data:', response.data);
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    solver.close();
-  }
-}
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `apiBase` | `string` | `https://solver.zetx.site` | CloudFlyer service URL |
+| `solve` | `boolean` | `true` | Enable automatic challenge solving |
+| `onChallenge` | `boolean` | `true` | Solve only when challenge detected |
+| `proxy` | `string` | - | Proxy for HTTP requests |
+| `apiProxy` | `string` | - | Proxy for CloudFlyer API calls |
+| `usePolling` | `boolean` | `false` | Use interval polling instead of long-polling |
+| `timeout` | `number` | `30000` | Request timeout in milliseconds |
+| `verbose` | `boolean` | `false` | Enable verbose logging |
 
-main();
-```
+### Environment Variables
 
-### With Upstream Proxy
-
-```typescript
-import { CloudflareSolver } from 'cfsolver';
-
-// The proxy is used as upstream for the LinkSocks tunnel
-const solver = new CloudflareSolver('your-api-key', {
-  proxy: 'http://user:pass@proxy.example.com:8080',
-});
-
-try {
-  const response = await solver.get('https://protected-site.com');
-} finally {
-  solver.close();
-}
-```
-
-### Pre-solve Mode
-
-```typescript
-import { CloudflareSolver } from 'cfsolver';
-
-// Always solve challenge before making request
-const solver = new CloudflareSolver('your-api-key', {
-  onChallenge: false,
-});
-
-try {
-  const response = await solver.get('https://protected-site.com');
-} finally {
-  solver.close();
-}
-```
-
-### Disable Solving
-
-```typescript
-import { CloudflareSolver } from 'cfsolver';
-
-// Use as a regular HTTP client without solving
-const solver = new CloudflareSolver('your-api-key', {
-  solve: false,
-});
-
-const response = await solver.get('https://regular-site.com');
-// No need to call close() when solve is disabled
-```
-
-### Run Example Scripts
+| Variable | Description |
+|----------|-------------|
+| `CLOUDFLYER_API_KEY` | Your CloudFlyer API key |
+| `CLOUDFLYER_API_BASE` | CloudFlyer service URL |
 
 ```bash
-npm install
-
-# Set environment variables
-set CLOUDFLYER_API_KEY=your_api_key
-set CLOUDFLYER_API_BASE=https://solver.zetx.site
-
-# Run examples
-npx ts-node examples/sdk_challenge.ts
-npx ts-node examples/sdk_turnstile.ts
-
-# With upstream proxy
-npx ts-node examples/sdk_challenge.ts --proxy http://user:pass@host:port
+export CLOUDFLYER_API_KEY="your-api-key"
 ```
 
-## Error Handling
+```typescript
+const solver = new CloudflareSolver(process.env.CLOUDFLYER_API_KEY!);
+```
+
+---
+
+## Exceptions
 
 ```typescript
-import { 
-  CloudflareSolver, 
+import {
+  CloudflareSolver,
   CFSolverError,
   CFSolverAPIError,
   CFSolverChallengeError,
@@ -277,12 +345,12 @@ const solver = new CloudflareSolver('your-api-key');
 try {
   const response = await solver.get('https://protected-site.com');
 } catch (error) {
-  if (error instanceof CFSolverConnectionError) {
-    console.error('LinkSocks connection failed:', error.message);
-  } else if (error instanceof CFSolverTimeoutError) {
+  if (error instanceof CFSolverTimeoutError) {
     console.error('Challenge solving timed out');
   } else if (error instanceof CFSolverChallengeError) {
     console.error('Failed to solve challenge:', error.message);
+  } else if (error instanceof CFSolverConnectionError) {
+    console.error('Connection failed:', error.message);
   } else if (error instanceof CFSolverAPIError) {
     console.error('API error:', error.message);
   } else if (error instanceof CFSolverError) {
@@ -290,21 +358,27 @@ try {
   } else {
     throw error;
   }
+} finally {
+  solver.close();
 }
 ```
 
-## Environment Variables
+| Exception | Description |
+|-----------|-------------|
+| `CFSolverError` | Base exception for all CFSolver errors |
+| `CFSolverAPIError` | API request failed |
+| `CFSolverChallengeError` | Challenge solving failed |
+| `CFSolverTimeoutError` | Operation timed out |
+| `CFSolverConnectionError` | Connection to service failed |
 
-You can set the API key via environment variable:
-
-```bash
-export CLOUDFLYER_API_KEY="your-api-key"
-```
-
-```typescript
-const solver = new CloudflareSolver(process.env.CLOUDFLYER_API_KEY!);
-```
+---
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## Links
+
+- [CloudFlyer Website](https://cloudflyer.zetx.site)
+- [GitHub Repository](https://github.com/cloudflyer-project/cloudflyer-nodejs-sdk)
+- [npm Package](https://www.npmjs.com/package/cfsolver)
