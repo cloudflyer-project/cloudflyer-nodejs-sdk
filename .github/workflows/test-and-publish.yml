@@ -47,6 +47,7 @@ jobs:
           directory: coverage
           flags: nodejs-sdk
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
   publish:
@@ -85,6 +86,9 @@ jobs:
             exit 1
           fi
           echo "Version verified: $PACKAGE_VERSION"
+
+      - name: Clear npm auth token
+        run: npm config delete //registry.npmjs.org/:_authToken || true
 
       - name: Publish to npm
         run: npm publish --provenance --access public
