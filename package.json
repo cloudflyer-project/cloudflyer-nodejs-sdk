@@ -1,0 +1,53 @@
+{
+  "name": "cfsolver",
+  "version": "0.3.0",
+  "description": "Node.js HTTP client that automatically bypasses Cloudflare challenges using the CloudFlyer API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "cfsolver": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cloudflare",
+    "bypass",
+    "captcha",
+    "turnstile",
+    "solver",
+    "anti-bot",
+    "linksocks"
+  ],
+  "author": "CloudFlyer Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudflyer-project/cloudflyer-nodejs-sdk"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "pako": "^2.1.0",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/pako": "^2.0.3",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.0",
+    "ts-jest": "^29.1.0"
+  }
+}
