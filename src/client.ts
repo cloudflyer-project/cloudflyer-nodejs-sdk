@@ -38,6 +38,8 @@ export interface CloudflareSolverOptions {
   apiProxy?: string | AxiosProxyConfig;
   /** Use interval polling instead of long-polling (default: false) */
   usePolling?: boolean;
+  /** Interval in milliseconds between polling attempts when usePolling=true (default: 2000) */
+  pollingInterval?: number;
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number;
   /** Enable verbose logging (default: false) */
@@ -73,6 +75,7 @@ export class CloudflareSolver {
   private proxy?: string | AxiosProxyConfig;
   private apiProxy?: string | AxiosProxyConfig;
   private usePolling: boolean;
+  private pollingInterval: number;
   private timeout: number;
   private verbose: boolean;
   private client: AxiosInstance;
@@ -100,6 +103,7 @@ export class CloudflareSolver {
     this.proxy = options.proxy;
     this.apiProxy = options.apiProxy;
     this.usePolling = options.usePolling || false;
+    this.pollingInterval = options.pollingInterval || 2000;
     this.timeout = options.timeout || 30000;
     this.verbose = options.verbose || false;
 
@@ -255,7 +259,7 @@ export class CloudflareSolver {
     if (this.linkSocksConnecting) {
       // Wait for existing connection attempt
       await new Promise<void>((resolve) => {
-        const checkInterval = setInterval(() => {
+        const checkInterval: NodeJS.Timeout = setInterval(() => {
           if (!this.linkSocksConnecting) {
             clearInterval(checkInterval);
             resolve();
@@ -293,9 +297,6 @@ export class CloudflareSolver {
 
       await this.linkSocksProvider.connect();
       this.log('LinkSocks Provider connected successfully');
-
-      // Wait a bit for connection to stabilize
-      await this.sleep(1000);
     } catch (error) {
       this.linkSocksConnectError = error instanceof Error ? error.message : String(error);
       console.error(`LinkSocks connection failed: ${this.linkSocksConnectError}`);
@@ -405,7 +406,7 @@ export class CloudflareSolver {
 
         if (response.status !== 200) {
           if (this.usePolling) {
-            await this.sleep(2000);
+            await this.sleep(this.pollingInterval);
           }
           continue;
         }
@@ -415,7 +416,7 @@ export class CloudflareSolver {
 
         if (status === 'processing') {
           if (this.usePolling) {
-            await this.sleep(2000);
+            await this.sleep(this.pollingInterval);
           }
           continue;
         }
@@ -439,7 +440,7 @@ export class CloudflareSolver {
           throw error;
         }
         if (this.usePolling) {
-          await this.sleep(2000);
+          await this.sleep(this.pollingInterval);
         }
       }
     }
