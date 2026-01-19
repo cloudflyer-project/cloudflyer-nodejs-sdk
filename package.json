@@ -1,6 +1,6 @@
 {
   "name": "cfsolver",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Node.js HTTP client that automatically bypasses Cloudflare challenges using the CloudFlyer API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
