@@ -185,7 +185,7 @@ export class CloudflareSolver {
    */
   private async getLinkSocksConfig(): Promise<{ url: string; token: string; connector_token: string }> {
     const response = await this.apiClient.post(
-      `${this.apiBase}/api/linksocks/getLinkSocks`,
+      `${this.apiBase}/getLinkSocks`,
       {},
       {
         headers: {
